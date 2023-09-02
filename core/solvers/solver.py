@@ -97,12 +97,14 @@ class Solver:
         self.create_lr_scheduler()
 
     def create_dataset(self):
-        if self.data_config.dataset_name == 'bullet':
-            self.train_dataset = Articulated_obj_dataset_bullet(self.C.config, 'train')
-            self.val_dataset = Articulated_obj_dataset_bullet(self.C.config, 'val')
-        elif self.data_config.dataset_name == 'real':
-            self.train_dataset = Articulated_obj_dataset_real(self.C.config, 'train')
-            self.val_dataset = Articulated_obj_dataset_real(self.C.config, 'val')
+        if self.data_config.dataset_name == 'partnet':
+            self.train_dataset = Articulated_Obj_Syn(self.C.config, 'train')
+            self.val_dataset = Articulated_Obj_Syn(self.C.config, 'val')
+        elif self.data_config.dataset_name == 'partnet_real':
+            self.train_dataset = Articulated_Real_Obj(self.C.config, 'train')
+            self.val_dataset = Articulated_Real_Obj(self.C.config, 'val')
+        else:
+            raise NotImplementedError("ERROR: dataset not implemented!")
 
     def create_dataloader(self):
         if self.multi_gpu:
@@ -322,7 +324,7 @@ class Solver:
                 tmp.input_var[k] = v.cuda(non_blocking=True) 
 
     def analyse_result(self, details, outputs2):
-        """to compute precision and recall of the occupancy precition 
+        """to compute precision and recall of the occupancy prediction 
         """
         occ_labels = self.tmp.input_var['occup_labels_2']
         B, N = occ_labels.shape
@@ -342,11 +344,17 @@ class Solver:
     def forward(self):
         tmp = self.tmp
 
-        outputs = self.model(tmp.input_var['point_cloud_1'], 
+        if 'point_cloud_3' in tmp.input_var.keys():
+            outputs = self.model(tmp.input_var['point_cloud_1'], 
                             tmp.input_var['point_cloud_2'],
                             tmp.input_var['point_cloud_3'],
                             tmp.input_var['coords_2'], 
                             tmp.input_var['obj_name'])
+        else:
+            outputs = self.model(tmp.input_var['point_cloud_1'], 
+                            tmp.input_var['point_cloud_2'],
+                            None,
+                            tmp.input_var['coords_2'])
         
         l, details = self.multiloss(**outputs, **tmp.input_var)
 
@@ -427,7 +435,7 @@ class Solver:
                         torch.distributed.barrier()
 
             if (
-                config.save_epoch_interval > 0 and epoch > 30
+                config.save_epoch_interval > 0  #and epoch > 30
                 and (tmp.epoch+1) % config.save_epoch_interval == 0
             ):
                 if self.local_rank in [-1, 0]:

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+import ipdb
 
 class PointNetSetAbstraction(nn.Module):
     def __init__(self, npoint, radius, nsample, in_channel, mlp, group_all):
@@ -21,7 +21,7 @@ class PointNetSetAbstraction(nn.Module):
     def forward(self, xyz, points, returnfps=False):
         """
         Input:
-            xyz: input points position data, [B, C, N] #C=3
+            xyz: input points position data, [B, C, N] # C=3
             points: input points data, [B, D, N]  
         Return:
             new_xyz: sampled points position data, [B, C, S]
@@ -137,7 +137,7 @@ def square_distance(src, dst):
     return dist
 
 
-def index_points(points, idx):
+def index_points(points, idx, return_bool=False):
     """
 
     Input:
@@ -158,8 +158,14 @@ def index_points(points, idx):
         .view(view_shape)
         .repeat(repeat_shape)
     )
-    new_points = points[batch_indices, idx, :]
-    return new_points
+    if return_bool:
+        point_mask = torch.zeros((B, points.shape[1], 1)).cuda()
+        point_mask[batch_indices, idx, :] = 1
+        return point_mask.bool()
+    else:
+        #ipdb.set_trace()
+        new_points = points[batch_indices, idx, :]
+        return new_points
 
 
 def farthest_point_sample(xyz, npoint):

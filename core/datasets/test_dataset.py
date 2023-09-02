@@ -7,9 +7,8 @@ from core.datasets.train_dataset import *
 from core.utils.viz import *
 
 
-class Articulated_obj_bullet_test(Articulated_obj_dataset_bullet):
+class Articulated_Obj_Syn_Test(Articulated_Obj_Syn):
     def __init__(self, config):
-
         self.config = config
 
         config_data = config["data_info"]
@@ -49,14 +48,14 @@ class Articulated_obj_bullet_test(Articulated_obj_dataset_bullet):
 
         joint_id = np.loadtxt(os.path.join(self.pcd_root, name, idx, 'select_joint_id.txt'))
 
-        if data_start.shape[0] > 15000:
+        if data_start.shape[0] > self.input_num:
             pcd = o3d.geometry.PointCloud()
             pcd.points = o3d.utility.Vector3dVector(data_start[:, :3])
             pcd.colors = o3d.utility.Vector3dVector(np.repeat(data_start[..., 3:], 3, 1))
             downpcd = pcd.voxel_down_sample(voxel_size=0.015)
             data_start = np.concatenate((np.asarray(downpcd.points), np.asarray(downpcd.colors)[:, 0][:, None]), 1)
         
-        if data_end.shape[0] > 15000:
+        if data_end.shape[0] > self.input_num:
             pcd = o3d.geometry.PointCloud()
             pcd.points = o3d.utility.Vector3dVector(data_end[:, :3])
             pcd.colors = o3d.utility.Vector3dVector(np.repeat(data_end[..., 3:], 3, 1))
@@ -91,7 +90,7 @@ class Articulated_obj_bullet_test(Articulated_obj_dataset_bullet):
                                 [-self.bound, self.bound, self.config['test']['grid_kwargs']['y_res']],
                                 [z_min, z_max, self.config['test']['grid_kwargs']['z_res']],
                                 type='HWD')
-            
+
         else:
             on_surface_coords = pcd_data
             off_surface_x = np.random.uniform(-0.5, 0.5, 
@@ -116,10 +115,7 @@ class Articulated_obj_bullet_test(Articulated_obj_dataset_bullet):
         # sample
         pc_start = self.prepare_input_data(pc_start_ori, 1)
         pc_end = self.prepare_input_data(pc_end_ori, self.down_sample)
-
-        # normalize
-        # pc_start, center_start, scale_start = self.normalize_pcd(pc_start)
-        # pc_end, center_end, scale_end = self.normalize_pcd(pc_end)
+        
         bound_max = np.maximum(pc_start.max(0), pc_end.max(0))
         bound_min = np.minimum(pc_start.min(0), pc_end.min(0))
         center = (bound_min + bound_max) / 2
@@ -128,8 +124,6 @@ class Articulated_obj_bullet_test(Articulated_obj_dataset_bullet):
         pc_start = (pc_start - center) / scale
         pc_end = (pc_end - center) / scale
         pc_end_ori = (pc_end_ori - center) / scale
-
-        # pc_end_ori, center_end_ori, scale_end_ori = self.normalize_pcd(pc_end_ori)
 
         # get occp coords and labels
         occup_coords = self.prepare_occupancy_data(pc_end_ori)
@@ -143,28 +137,16 @@ class Articulated_obj_bullet_test(Articulated_obj_dataset_bullet):
         joint_type_label = torch.from_numpy(joint_label).float()
         
         inputs = {'point_cloud_1': pc_start, 'point_cloud_2': pc_end,
-                #  'center_1': center_start, 'center_2': center_end, 
-                #  'scale_1': scale_start, 'scale_2': scale_end,
                 'center': center, 'scale': scale, 
                  'label_1': label_start, 'label_2': label_end,
                  'coords_2': occup_coords, 'cat_name': cat_name, 'id': idx, 
                  'transform': transform_mat, 'joint_id': joint_id, 
-                 "gt_joint": joint_type_label} #  'point_cloud_middle': pc_end, 
+                 "gt_joint": joint_type_label}
         
         return inputs
 
 
-class Articulated_obj_bullet_test_real(Articulated_obj_dataset_real):
-    def get_input(self, index):
-        # get pcd
-        cat_name, instance_name, name_index = self.filenames[index].split(' ')
-        name_index = int(name_index)
-
-        cat_name2, instance_name2, name_index2 = self.filenames[23].split(' ')
+class Articulated_Real_Obj_Test(Articulated_Obj_Syn_Test):
+    def __init__(self, config):
+        super().__init__(config)
         
-        mask_object = self.mask_dict[cat_name]
-        
-        cam_pts1, rgb1 = self.preprocess(mask_object, cat_name, instance_name, show=True)
-        cam_pts2, rgb2 = self.preprocess(mask_object, cat_name, instance_name2, show=False)
-        
-        return cam_pts1, cam_pts2, cat_name, instance_name, rgb1, rgb2

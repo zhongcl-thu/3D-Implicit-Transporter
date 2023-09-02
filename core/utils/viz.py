@@ -24,7 +24,7 @@ def make_o3d_pcd(xyz, colors=None, big_size=False, name='pcd1'):
         return pcd
 
 
-def custom_draw_geometry_with_key_callback(pcd, save_path):
+def custom_draw_geometry_with_key_callback(pcd, save_path=None):
 
     def change_background_to_black(vis):
         opt = vis.get_render_option()
@@ -82,7 +82,7 @@ def viz_pc_keypoint(pc, keypoints, kp_radius=0.3, save_path=None, color_v=[0.792
         
         pcd.colors = o3d.utility.Vector3dVector(colors)
     
-    palette = sns.color_palette("bright", 6)  # create color palette
+    palette = sns.color_palette("bright", 1000)  # create color palette
     
     # draw pcd and keypoints
     mesh_spheres = []

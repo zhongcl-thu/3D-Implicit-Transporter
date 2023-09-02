@@ -23,7 +23,7 @@ class PointNetPlusPlusAttnFusion(nn.Module):
             npoint=512,
             radius=0.2,
             nsample=32,
-            in_channel=6,
+            in_channel=dim+3,
             mlp=[64, 64, 128],
             group_all=False,
         )
@@ -36,20 +36,6 @@ class PointNetPlusPlusAttnFusion(nn.Module):
             group_all=False,
         )
 
-        # self.fp2 = PointNetFeaturePropagation(in_channel=640, mlp=[512, 256])
-        # self.fp1 = PointNetFeaturePropagation(in_channel=256, mlp=[256, 128, c_dim])
-
-        # self.fp2_corr = PointNetFeaturePropagation(in_channel=640, mlp=[512, 256])
-        # self.fp1_corr = PointNetFeaturePropagation(
-        #     in_channel=256, mlp=[256, 128, c_dim]
-        # )
-
-        # self.fc1 = nn.Linear(1024, 512)
-        # self.bn1 = nn.BatchNorm1d(512)
-        # self.drop1 = nn.Dropout(0.4)
-        # self.fc2 = nn.Linear(512, 256)
-        # self.bn2 = nn.BatchNorm1d(256)
-        # self.drop2 = nn.Dropout(0.4)
         self.fc1 = nn.Linear(256, out_dim)
 
         attn_type = attn_kwargs.get("type", "Transformer")
@@ -75,59 +61,26 @@ class PointNetPlusPlusAttnFusion(nn.Module):
         """
         xyz: B*N*3
         xyz2: B*N*3
-        -------
-        return:
-        B*N'*3
-        B*N'*C
-        B*N'
-        B*N'
-        B*N'*N'
         """
+
         B, _, _ = xyz.shape
         xyz = xyz.permute(0, 2, 1) # B, 3, N
         l2_points_xyz2, l2_xyz2, fps_idx2 = self.encode_deep_feature(
             xyz2, return_xyz=True
-        ) # l2_points_xyz2 B, 256, 128
+        ) 
         
         l0_points = xyz
         l0_xyz = xyz[:, :3, :]
 
         '''encode deep feature for xyz'''
         l1_xyz, l1_points, l1_fps_idx = self.sa1(l0_xyz, l0_points, returnfps=True) 
-        # l1_xyz [B,3,512] l1_points [B,128,512]
         l2_xyz, l2_points, l2_fps_idx = self.sa2(l1_xyz, l1_points, returnfps=True)
-        # l2_xyz [B,3,128] l2_points [B,256,128]
-        
-        # fps_idx = torch.gather(l1_fps_idx, 1, l2_fps_idx)
         
         '''attention'''
-        attn, score = self.attn(l2_points, l2_points_xyz2, True)# attn B,256,128  
-        # l2_points = torch.cat((l2_points, attn), dim=1)# l2_points B,512,128  
-        
+        attn, score = self.attn(l2_points, l2_points_xyz2, True)# attn B, 256, 128  
+
         new_attn = torch.max(attn, 2)[0]
         return self.fc1(new_attn)
-        
-
-        # l1_points_back = self.fp2(l1_xyz, l2_xyz, l1_points, l2_points)
-        # l0_points = self.fp1(l0_xyz, l1_xyz, None, l1_points_back)
-
-        # l1_points_corr = self.fp2_corr(l1_xyz, l2_xyz, l1_points, l2_points)
-        # l0_points_corr = self.fp1_corr(l0_xyz, l1_xyz, None, l1_points_corr)
-        # if return_score:
-        #     return (
-        #         xyz.permute(0, 2, 1),
-        #         l0_points.permute(0, 2, 1),
-        #         l0_points_corr.permute(0, 2, 1),
-        #         fps_idx,
-        #         fps_idx2,
-        #         score,
-        #     )
-        # else:
-        #     return (
-        #         xyz.permute(0, 2, 1),
-        #         l0_points.permute(0, 2, 1),
-        #         l0_points_corr.permute(0, 2, 1),
-        #     )
 
 
 # Concat attn with original feature
@@ -185,13 +138,6 @@ class PointNetPlusPlusAttnFusion_cross(nn.Module):
         """
         xyz: B*N*3
         xyz2: B*N*3
-        -------
-        return:
-        B*N'*3
-        B*N'*C
-        B*N'
-        B*N'
-        B*N'*N'
         """
         
         l2_points, l2_xyz, l1_points, l1_xyz, l0_xyz, _ = self.encode_deep_feature(

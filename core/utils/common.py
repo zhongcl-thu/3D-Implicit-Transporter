@@ -69,7 +69,7 @@ def save_state(model, path, optimizer, step, tag):
         to_save = model.state_dict()
         torch.save(to_save, save_path)
     
-    torch.save(optimizer, os.path.join(path, "checkpoints", "optimizer_{}.pth".format(tag)))
+    # torch.save(optimizer, os.path.join(path, "checkpoints", "optimizer_{}.pth".format(tag)))
     print("saving models in iter: {}".format(step))
 
 

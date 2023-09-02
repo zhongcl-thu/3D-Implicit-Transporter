@@ -408,8 +408,9 @@ class LocalPoolPointnetPPFusion(nn.Module):
 
     def __init__(
         self,
-        c_dim=128,
+        #=128,
         dim=3,
+        c_dim=128,
         hidden_dim=128,
         scatter_type="max",
         mlp_kwargs=None,
@@ -432,6 +433,7 @@ class LocalPoolPointnetPPFusion(nn.Module):
         return_score=False, z_max=0.5, z_min=-0.5
     ):
         super().__init__()
+        
         self.c_dim = c_dim
         self.return_score = return_score
         
@@ -581,7 +583,7 @@ class LocalPoolPointnetPPFusion(nn.Module):
 
         c = self.pool_and_3dconv(coord, index, net)
         c2 = self.pool_and_3dconv(coord2, index2, net2)
-
+        
         fea = {}
         fea['grid'] = self.generate_grid_features(p, c, unet3d=self.unet3d)
         

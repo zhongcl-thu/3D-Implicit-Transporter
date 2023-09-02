@@ -1,17 +1,14 @@
 import numpy as np
 import os
+import h5py
+import open3d as o3d
+from PIL import Image
+import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import Dataset
-import open3d as o3d
-import ipdb
 
 from core.datasets.augmentation import atomic_rotate
 from core.utils.viz import *
-from core.utils.pointcloud_utils import get_pointcloud
-from core.utils.transform import fill_missing
-
-from PIL import Image
-import matplotlib.pyplot as plt
 
 
 def make_3d_grid(x_res, y_res, z_res, type='DHW'):
@@ -40,7 +37,7 @@ def seed_worker(worker_id):
     np.random.seed(worker_seed)
 
 
-class BaseDataset_ori(Dataset):
+class BaseDataset(Dataset):
     def __init__(self, config, mode):
         Dataset.__init__(self)
         
@@ -76,7 +73,7 @@ class BaseDataset_ori(Dataset):
         raise NotImplementedError()
 
 
-class Articulated_obj_dataset_bullet(BaseDataset_ori):
+class Articulated_Obj_Syn(BaseDataset):
     def __init__(self, config, mode):
         super().__init__(config, mode)
 
@@ -85,8 +82,10 @@ class Articulated_obj_dataset_bullet(BaseDataset_ori):
         self.bound = 0.5 * (self.padding + 1)
         self.max_down_sample = self.config_aug.get('max_down_sample', 1)
         self.pc_length = 30
-        self.dif_length = self.config_aug['dif_length']
+        # self.dif_length = self.config_aug['dif_length']
         self.get_gt_pose = self.config['data_info'].get('gt_pose', False)
+
+        self.sampling_mode = self.config_public_params.get('sampling_mode', 'random')
     
 
     def get_input(self, index):
@@ -94,6 +93,7 @@ class Articulated_obj_dataset_bullet(BaseDataset_ori):
         obj_name, articulate_type, instance_name, name_index = self.filenames[index].split(' ')
         name_index = int(name_index)
 
+        # temporal difference
         low_dif, high_dif = np.random.randint(5, 15, size=2)
         name_index_1 = name_index - low_dif
         name_index_2 = name_index + high_dif
@@ -173,7 +173,7 @@ class Articulated_obj_dataset_bullet(BaseDataset_ori):
             return pcd, valid_mask
 
 
-    def prepare_occupancy_data(self, pcd_data):
+    def prepare_occupancy_data(self, pcd_data, sampling_mode='random'):
         can_repeat = True if self.on_occupancy_num > pcd_data.shape[0] else False
         
         rand_idcs_on = np.random.choice(pcd_data.shape[0], 
@@ -182,15 +182,22 @@ class Articulated_obj_dataset_bullet(BaseDataset_ori):
         on_surface_coords = pcd_data[rand_idcs_on]
         on_surface_labels = np.ones(self.on_occupancy_num)
 
-        off_surface_x = np.random.uniform(-self.bound, self.bound, 
-                                            size=(self.off_occupancy_num, 1))
-        off_surface_y = np.random.uniform(-self.bound, self.bound, 
-                                            size=(self.off_occupancy_num, 1))
-        off_surface_z  = np.random.uniform(-self.bound, self.bound, 
-                                            size=(self.off_occupancy_num, 1))
-        off_surface_coords = np.concatenate((off_surface_x, off_surface_y, off_surface_z), 
-                                            axis=1)
-        off_surface_labels = np.zeros(self.off_occupancy_num)
+        if sampling_mode == 'random':
+            off_surface_x = np.random.uniform(-self.bound, self.bound, 
+                                                size=(self.off_occupancy_num, 1))
+            off_surface_y = np.random.uniform(-self.bound, self.bound, 
+                                                size=(self.off_occupancy_num, 1))
+            off_surface_z  = np.random.uniform(-self.bound, self.bound, 
+                                                size=(self.off_occupancy_num, 1))
+            off_surface_coords = np.concatenate((off_surface_x, off_surface_y, off_surface_z), 
+                                                axis=1)
+            off_surface_labels = np.zeros(self.off_occupancy_num)
+        else:
+            grid = make_3d_grid([-0.5, 0.5, 15], [-0.5, 0.5, 15], [-0.5, 0.5, 15])
+            rand_idcs_on = np.random.choice(grid.shape[0], 
+                                        size=self.off_occupancy_num)
+            off_surface_coords = grid[rand_idcs_on]
+            off_surface_labels = np.zeros(self.off_occupancy_num)
         
         coords = np.concatenate((on_surface_coords, off_surface_coords), axis=0)
         labels = np.concatenate((on_surface_labels, off_surface_labels), axis=0)
@@ -256,7 +263,7 @@ class Articulated_obj_dataset_bullet(BaseDataset_ori):
 
         # get occp coords and labels
         if self.mode != 'test':
-            occup_coords, occup_labels = self.prepare_occupancy_data(pc_middle_ori)
+            occup_coords, occup_labels = self.prepare_occupancy_data(pc_middle_ori, self.sampling_mode)
         else:
             occup_coords, occup_labels = self.prepare_test_data()
         
@@ -294,169 +301,169 @@ class Articulated_obj_dataset_bullet(BaseDataset_ori):
         return inputs
 
 
-class Articulated_obj_dataset_real(Articulated_obj_dataset_bullet):
+class Articulated_Real_Obj(Articulated_Obj_Syn):
     def __init__(self, config, mode):
         super().__init__(config, mode)
-
-        self.cam_k = np.array([[607.6150, 0.0, 311.7307], 
-                                [0.0, 607.7031, 231.1887], 
-                                [0.0, 0.0, 1.0]])
-
-        self.mask_dict = {'cupboard/obj1_left':[204, 626, 0, 446], 
-                        'cupboard/obj1_middle':[153, 501, 28, 469], 
-                        'cupboard/obj1_right':[146, 413, 15, 480],
-                        'cupboard/obj2': [311, 615, 151, 402],
-                        'fridge/fridge_off_1': [171, 544, 99, 445],
-                        'fridge/fridge_on_2': [21, 343, 0, 480],
-                        'oven/oven_off_2': [68, 489, 95, 400],
-                        'oven/oven_on_3': [207, 529, 86, 403],
-                        'm_cupboard/1': [193, 510, 13, 422],
-                        'm_cupboard/2': [207, 519, 22, 416],
-                        'm_cupboard/3': [129, 484, 40, 480],
-                        'm_oven/1': [235, 513, 176, 480],
-                        'm_oven/2': [175, 524, 91, 373],
-                        'm_oven/3': [226, 487, 85, 334],
-                        } # W, H
+        self.pc_length = 281
 
 
-    def preprocess(self, mask_object, cat_name, instance_name, show=False):
-
-        mask_field = np.zeros((480, 640))
-        mask_field[mask_object[2]:mask_object[3], mask_object[0]:mask_object[1]] = 1
-
-        rgb = np.array(Image.open(os.path.join(self.pcd_root, cat_name, 'rgb', instance_name)).convert('RGB'))
-        rgb_crop = rgb[mask_object[2]:mask_object[3], mask_object[0]:mask_object[1], :]
-        if show:
-            rgb1_show = np.array(rgb_crop, dtype='uint8')
-            plt.imshow(rgb1_show)
-            plt.show()
-
-        depth = np.array(Image.open(os.path.join(self.pcd_root, cat_name, 'depth', instance_name)), dtype=np.float) / 1000.0
-        depth = fill_missing(depth, 1, 1) / 1
-        depth[depth < 0.1] = 0
-        
-        cam_pts, color_pts, segmentation_pts = get_pointcloud(depth, color_img=rgb, segmentation_img=None, 
-                                                          cam_intr=self.cam_k, cam_pose=None)
-
-        cam_pts = cam_pts.reshape(480, 640, 3)
-        cam_pts = cam_pts[mask_field==1, :]
-        outlier = cam_pts[:, 2] > 0
-        cam_pts = cam_pts[outlier]
-        
+    def filter_points(self, pts):
         pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(cam_pts)
-        
-        color_pts = color_pts.reshape(480, 640, 3)
-        color_pts = color_pts[mask_field==1, :]
-        color_pts = color_pts[outlier]
-        pcd.colors = o3d.utility.Vector3dVector(color_pts.astype(np.float)/255.0)
-        if show:
-            cl, ind = pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
-            if not os.path.exists('paper_show/ours/real_video/{}'.format(cat_name)):
-                os.makedirs('paper_show/ours/real_video/{}'.format(cat_name))
-            # custom_draw_geometry_with_key_callback([cl], 
-            #                         save_path='paper_show/ours/real_video/{}/{}_rgb.png'.format(cat_name, instance_name))
-            #o3d.visualization.draw_geometries([cl])
-        else:
-            cl, ind = pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
-        
-        return np.concatenate((np.array(cl.points), np.array(cl.colors)), 1), rgb
+        pcd.points = o3d.utility.Vector3dVector(pts[:, :3])
+        pcd.colors = o3d.utility.Vector3dVector(pts[:, 3:]/255.0)
+        # o3d.visualization.draw_geometries([pcd])
 
+        down_pcd = pcd.voxel_down_sample(voxel_size=self.config_aug['voxel_size'])
+        cl, ind = down_pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
+        # o3d.visualization.draw_geometries([cl])
+
+        return np.concatenate((np.array(cl.points), np.array(cl.colors)), 1)
+
+
+    # def get_input(self, index):
+    #     # get pcd
+    #     name_index, _ = self.filenames[index].split('.')
+    #     name_index = int(name_index)
+
+    #     # temporal difference
+    #     low_dif, high_dif = np.random.randint(10, 30, size=2)
+    #     name_index_1 = name_index - low_dif
+    #     name_index_2 = name_index + high_dif
+        
+    #     name_index_1 = name_index_1 if name_index_1 > 0 else 0
+    #     name_index_2 = name_index_1 if name_index_1 > 0 else 0
+
+    #     data = np.load(os.path.join(self.pcd_root, '{:0>4d}.npy'.format(name_index)), 
+    #                     allow_pickle=True).astype(np.float)
+    #     data = self.filter_points(data)
+        
+    #     if name_index_1 < 0:
+    #         name_index_1 = 0
+        
+    #     if name_index_2 > self.pc_length - 1:
+    #         name_index_2 = self.pc_length - 1
+
+    #     data1 = np.load(os.path.join(self.pcd_root, '{:0>4d}.npy'.format(name_index_1)), 
+    #                     allow_pickle=True).astype(np.float)
+    #     data1 = self.filter_points(data1)
+
+    #     data2 = np.load(os.path.join(self.pcd_root, '{:0>4d}.npy'.format(name_index_2)), 
+    #                     allow_pickle=True).astype(np.float)
+    #     data2 = self.filter_points(data2)
+        
+    #     return data1, data, data2
 
     def get_input(self, index):
         # get pcd
-        cat_name, instance_name, name_index = self.filenames[index].split(' ')
-        name_index = int(name_index)
+        cat_name, instance_name = self.filenames[index].split(' ')
 
-        high_dif = 12
-        low_dif = 6
-        if cat_name == 'm_oven/1' or cat_name == 'm_oven/2' or  cat_name == 'm_cupboard/3':
-            high_dif = 8
-            low_dif = 4
+        # temporal difference
+        low_dif, high_dif = np.random.randint(8, 25, size=2)
+        index_1 = index - low_dif
+        index_2 = index + high_dif
 
-        random_dif = np.random.randint(low_dif, high_dif)
-        random_direction = np.random.uniform(-1, 1)
-        if random_direction < 0:
-            random_dif = -random_dif
+        if index_1 < 0:
+            index_1 = 0
+        if index_2 > len(self.filenames) - 1:
+            index_2 = len(self.filenames) - 1
         
-        try:
-            cat_name2, instance_name2, name_index2 = self.filenames[index + random_dif].split(' ')
-            if cat_name2 != cat_name:
-                random_dif = -random_dif
-                cat_name2, instance_name2, name_index2 = self.filenames[index + random_dif].split(' ')
-                if cat_name2 != cat_name:
-                    print(cat_name, instance_name)
-                    print(cat_name2, instance_name2)
-        except:
-            random_dif = -random_dif
-            cat_name2, instance_name2, name_index2 = self.filenames[index + random_dif].split(' ')
-            if cat_name2 != cat_name:
-                print(cat_name, instance_name)
-                print(cat_name2, instance_name2)
+        cat_name_1, instance_name_1 = self.filenames[index_1].split(' ')
+        if cat_name_1 != cat_name:
+            cat_name_1, instance_name_1 = self.filenames[index + low_dif].split(' ')
 
-        mask_object = self.mask_dict[cat_name]
+        cat_name_2, instance_name_2 = self.filenames[index_2].split(' ')
+        if cat_name_2 != cat_name:
+            cat_name_2, instance_name_2 = self.filenames[index - high_dif].split(' ')
 
-        cam_pts1, rgb1 = self.preprocess(mask_object, cat_name, instance_name, show=False)
-        cam_pts2, rgb2 = self.preprocess(mask_object, cat_name, instance_name2, show=False)
+        data = np.loadtxt(os.path.join(self.pcd_root, '{}/pc/txt/{}'.format(cat_name, instance_name)))
+        data = self.filter_points(data)
+
+        data1 = np.loadtxt(os.path.join(self.pcd_root, '{}/pc/txt/{}'.format(cat_name_1, instance_name_1)))
+        data1 = self.filter_points(data1)
+
+        data2 = np.loadtxt(os.path.join(self.pcd_root, '{}/pc/txt/{}'.format(cat_name_2, instance_name_2)))
+        data2 = self.filter_points(data2)
         
-        return cam_pts1, cam_pts2, cat_name, instance_name, rgb1, rgb2
+        return data1, data, data2
 
 
     def __getitem__(self, index):
-        pc_start_ori, pc_end_ori, cat_name, instance_name, rgb1, rgb2 = self.get_input(index)
-        
-        # sample
-        _pc_start_ori = self.prepare_input_data(pc_start_ori, self.max_down_sample)
-        _pc_end_ori = self.prepare_input_data(pc_end_ori, self.max_down_sample)
+        pc_middle_ori, pc_start_ori, pc_end_ori = self.get_input(index)
 
-        pc_start = _pc_start_ori[:, :3]
-        pc_end = _pc_end_ori[:, :3]
+        # sample
+        pc_start = self.prepare_input_data(pc_start_ori, self.max_down_sample)
+        pc_middle = self.prepare_input_data(pc_middle_ori, 1)
+        pc_end = self.prepare_input_data(pc_end_ori, self.max_down_sample)
         
+        # ipdb.set_trace()
+        # pc_start_show = make_o3d_pcd(pc_start[:, :3], pc_start[:, 3:])
+        # pc_middle_show = make_o3d_pcd(pc_end[:, :3], pc_end[:, 3:])
+        # o3d.visualization.draw_geometries([pc_start_show, pc_middle_show])
+
         if self.config_aug["do_aug"]:
             # rotate
             z_angle = np.random.uniform() * self.config_aug["rotate_angle"] / 180.0 * (np.pi)
-            angles_2d = [0, 0, z_angle]
+            angles_2d = [0, z_angle, 0]
 
-            pc_start = atomic_rotate(pc_start, angles_2d)
-            pc_middle = atomic_rotate(pc_middle, angles_2d)
-            pc_middle_ori = atomic_rotate(pc_middle_ori, angles_2d)
-            pc_end = atomic_rotate(pc_end, angles_2d)
+            pc_start_pts = atomic_rotate(pc_start[:, :3], angles_2d)
+            pc_middle_pts = atomic_rotate(pc_middle[:, :3], angles_2d)
+            pc_middle_ori_pts = atomic_rotate(pc_middle_ori[:, :3], angles_2d)
+            pc_end_pts = atomic_rotate(pc_end[:, :3], angles_2d)
+
+            # pc_start_show = make_o3d_pcd(pc_start_pts, pc_start[:, 3:])
+            # pc_middle_show = make_o3d_pcd(pc_end_pts[:, :3], pc_end[:, 3:])
+            # o3d.visualization.draw_geometries([pc_start_show, pc_middle_show])
 
             # jitter (Gaussian noise)
             sigma, clip = self.config_aug["sigma"], self.config_aug["clip"]
             jitter1 = np.clip(sigma * np.random.uniform(pc_start.shape[0], 3), -1 * clip, clip)
             jitter2 = np.clip(sigma * np.random.uniform(pc_middle.shape[0], 3), -1 * clip, clip)
             jitter3 = np.clip(sigma * np.random.uniform(pc_end.shape[0], 3), -1 * clip, clip)
-            pc_start += jitter1
-            pc_middle += jitter2
-            pc_end += jitter3
+            pc_start_pts += jitter1
+            pc_middle_pts += jitter2
+            pc_end_pts += jitter3
+        else:
+            pc_start_pts = pc_start[:, :3]
+            pc_middle_pts = pc_middle[:, :3]
+            pc_end_pts = pc_end[:, :3]
+            pc_middle_ori_pts = pc_middle_ori[:, :3]
+
 
         # normalize
-        bound_max = np.maximum(pc_start.max(0),  pc_end.max(0)) #
-        bound_min = np.minimum(pc_start.min(0), pc_end.min(0)) #
+        bound_max = np.maximum(pc_start_pts.max(0), pc_middle_pts.max(0), pc_end_pts.max(0)) #
+        bound_min = np.minimum(pc_start_pts.min(0), pc_middle_pts.min(0), pc_end_pts.min(0)) #
         center = (bound_min + bound_max) / 2
         scale = (bound_max - bound_min).max() # / (1 + self.padding)
 
-        pc_start = (pc_start - center) / scale
-        pc_end = (pc_end - center) / scale
+        pc_start_pts = (pc_start_pts - center) / scale
+        pc_middle_pts = (pc_middle_pts - center) / scale
+        pc_middle_ori_pts = (pc_middle_ori_pts - center) / scale
+        pc_end_pts = (pc_end_pts - center) / scale
 
         # get occp coords and labels
         if self.mode != 'test':
-            occup_coords, occup_labels = self.prepare_occupancy_data(pc_end)
+            occup_coords, occup_labels = self.prepare_occupancy_data(pc_middle_ori_pts)
         else:
             occup_coords, occup_labels = self.prepare_test_data()
         
+        # ipdb.set_trasce()
+        # pc_start = np.concatenate((pc_start_pts, pc_start[:, 3:]), 1)
+        # pc_middle = np.concatenate((pc_middle_pts, pc_middle[:, 3:]), 1)
+        # pc_end = np.concatenate((pc_end_pts, pc_end[:, 3:]), 1)
+
+        pc_start = pc_start_pts
+        pc_middle = pc_middle_pts
+        pc_end = pc_end_pts
+
         pc_start = torch.from_numpy(pc_start).float()
+        pc_middle = torch.from_numpy(pc_middle).float()
         pc_end = torch.from_numpy(pc_end).float()
         occup_coords = torch.from_numpy(occup_coords).float()
         occup_labels = torch.from_numpy(occup_labels).float()
 
-        inputs = {'point_cloud_1': pc_start, 'point_cloud_2': pc_end, 
-                    'coords_2': occup_coords, 'occup_labels_2': occup_labels,
-                    'obj_name': cat_name, 'instance_name': instance_name, 
-                    'scale':scale, 'center': center, 'cam_k': self.cam_k,
-                    'point_cloud_1_ori': _pc_start_ori, 'point_cloud_2_ori': _pc_end_ori, 
-                    'rgb1': rgb1, "rgb2": rgb2
-            } 
+        inputs = {'point_cloud_1': pc_start, 'point_cloud_2': pc_middle, 'point_cloud_3': pc_end, 
+                'coords_2': occup_coords, 'occup_labels_2': occup_labels,
+               "center": center, "scale": scale, "obj_name": 'test'
+        }
 
         return inputs

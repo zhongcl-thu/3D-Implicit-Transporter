@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import ipdb 
 
 class Occupancy_loss (nn.Module):
     def __init__(self, weight, **kw):
@@ -36,3 +37,30 @@ class Occupancy_loss_2 (nn.Module):
 
         return occ_loss_all * self.weight
 
+
+
+class Recon_loss(nn.Module):
+    def __init__(self, weight, **kw):
+        nn.Module.__init__(self)
+        self.name = 'recon_loss_transp'
+        self.weight = weight
+
+    def forward(self, coords_transp, point_cloud_2, **kw):
+        
+        dist = torch.cdist(coords_transp, point_cloud_2)
+        loss_recon = torch.mean(torch.min(dist, -1)[0] + torch.min(dist, -2)[0])
+
+        return loss_recon * self.weight
+
+class Recon_loss_ori(nn.Module):
+    def __init__(self, weight, **kw):
+        nn.Module.__init__(self)
+        self.name = 'recon_loss_ori'
+        self.weight = weight
+
+    def forward(self, coords_ori, point_cloud_1, **kw):
+        
+        dist = torch.cdist(coords_ori, point_cloud_1)
+        loss_recon = torch.mean(torch.min(dist, -1)[0] + torch.min(dist, -2)[0])
+
+        return loss_recon * self.weight

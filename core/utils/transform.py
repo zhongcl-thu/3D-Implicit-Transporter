@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.spatial.transform
-from .depth_map_utils_ycb import fill_in_fast, fill_in_multiscale
 
 class Rotation(scipy.spatial.transform.Rotation):
     @classmethod
@@ -154,26 +153,3 @@ def transform_from_screw(l, m, theta, t):
     rotation = Rotation.from_matrix(rotation)
     transform = Transform(rotation, translation)
     return transform
-
-
-def fill_missing(
-            dpt, cam_scale, scale_2_80m, fill_type='multiscale',
-            extrapolate=False, show_process=False, blur_type='bilateral'
-    ):
-        dpt = dpt / cam_scale * scale_2_80m
-        projected_depth = dpt.copy()
-        if fill_type == 'fast':
-            final_dpt = fill_in_fast(
-                projected_depth, extrapolate=extrapolate, blur_type=blur_type,
-                # max_depth=2.0
-            )
-        elif fill_type == 'multiscale':
-            final_dpt, process_dict = fill_in_multiscale(
-                projected_depth, extrapolate=extrapolate, blur_type=blur_type,
-                show_process=show_process,
-                max_depth=2.0
-            )
-        else:
-            raise ValueError('Invalid fill_type {}'.format(fill_type))
-        dpt = final_dpt / scale_2_80m * cam_scale
-        return dpt

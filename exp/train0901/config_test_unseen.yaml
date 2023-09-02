@@ -71,11 +71,11 @@ augmentation:
 
 
 data_info:
-    dataset_name: bullet
+    dataset_name: partnet
     data_path: data/bullet_multi_joint_test
-    test_type: seen
-    # test_cat_name: ['Refrigerator', 'FoldingChair', 'Laptop', 'Stapler', 'TrashCan', 'Microwave', 'Toilet', 'Window', 'StorageFurniture', 'Kettle']
-    test_cat_name: ['Door']
+    test_type: unseen
+    test_cat_name: ['Box', 'Bucket', 'Dishwasher', 'Door', 'KitchenPot', 'Oven', 'Phone', 'Safe', 'Table', 'WashingMachine']
+    #test_cat_name: ['Phone']
     model_path: checkpoints/model_best.pth
 
 

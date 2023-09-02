@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 from .encoder.pointnet import ResnetBlockFC
 from .common import normalize_coordinate, normalize_3d_coordinate, map2local
+from .model_utils import get_arch, mlp, mlp_conv
 import ipdb
 
 from .encoder.pointnetpp_utils import (
@@ -321,62 +322,32 @@ class Recon_Coord(nn.Module):
         padding (float): conventional padding paramter of ONet for unit cube, so [-0.5, 0.5] -> [-0.55, 0.55]
     '''
 
-    def __init__(self, dim=3, c_dim=128, out_dim=1,
-                 hidden_size=256, n_blocks=5, leaky=False, 
-                 sample_mode='bilinear', padding=0.1, z_max=0.5, z_min=-0.5,
-                 desc_type='field'): #desc_type: [field, occp]
+    def __init__(self,  hidden_size, activation=True): #nfeat, code_nfts, nlevels, num_points,
         super().__init__()
         
-        self.sa1 = PointNetSetAbstraction(
-            npoint=15000,
-            radius=0.2,
-            nsample=32,
-            in_channel=6,
-            mlp=[32, 32, 16],
-            group_all=False,
-        )
+        #self.fc_topnet = nn.Linear(hidden_size, code_nfts)
+        #self.topnet = TopNet(nfeat, code_nfts, nlevels, num_points)
+        #self.decode_net = TopNet(nfeat, code_nfts, nlevels, num_points)
+        self.decode_net = Corr_net(hidden_size, activation)
 
+    def forward(self, c):
+        # code = self.fc_topnet(c)
 
-    def sample_grid_feature(self, p, c):
-        p_nor = normalize_3d_coordinate(p.clone(), padding=self.padding,
-                                        z_max=self.z_max, z_min=self.z_min) # normalize to the range of (0, 1)
-        p_nor = p_nor[:, :, None, None].float()
-        vgrid = 2.0 * p_nor - 1.0 # normalize to (-1, 1)
-        # acutally trilinear interpolation if mode = 'bilinear'
-        c = F.grid_sample(c, vgrid, padding_mode='border', align_corners=True, mode=self.sample_mode).squeeze(-1).squeeze(-1)
-        return c
-
-
-    def forward(self, p, c_plane, return_desc=False, **kwargs):
-        
-        if self.c_dim != 0:
-            c = 0
-            c += self.sample_grid_feature(p, c_plane['grid'])
-            c = c.transpose(1, 2)
-
-        # p = p.float()
-        # net = self.fc_p(p)
-        net = 0
-
-        for i in range(self.n_blocks):
-            if self.c_dim != 0:
-                net = net + self.fc_c[i](c)
-            net = self.blocks[i](net)
-
-        out = self.fc_out(self.actvn(net))
+        return self.decode_net(c)
        
-        return out
-
 
 class TopNet(nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, nfeat, code_nfts, nlevels, num_points, hidden_size):
         super().__init__()
-        self.nfeat = cfg.topnet.nfeat
-        self.code_nfts = cfg.topnet.code_nfts
-        self.nin = cfg.topnet.nfeat + cfg.topnet.code_nfts
-        self.nout = cfg.topnet.nfeat
-        self.tarch = get_arch(cfg.topnet.nlevels, cfg.num_points)
-        self.npoints = cfg.num_points
+        self.nfeat = nfeat
+        self.code_nfts = code_nfts
+        self.nin = nfeat + code_nfts
+        self.nout = nfeat
+        self.tarch = get_arch(nlevels, num_points)
+        self.npoints = num_points
+
+        self.fc_topnet = nn.Linear(hidden_size, code_nfts)
+
         level0 = nn.Sequential(
             mlp(self.code_nfts, [256, 64, self.nfeat * int(self.tarch[0])], bn=False),
             nn.Tanh()
@@ -405,6 +376,8 @@ class TopNet(nn.Module):
                                     output_channels * int(self.tarch[level])], bn)
     
     def forward(self, code : torch.Tensor):
+        code = self.fc_topnet(code)
+        
         nlevels = len(self.tarch)
         level0 = self.levels[0](code).reshape(-1, self.nfeat, int(self.tarch[0]))
         outs = [level0, ]
@@ -419,3 +392,41 @@ class TopNet(nn.Module):
             
         reconstruction = outs[-1].transpose(-1, -2)
         return reconstruction
+
+
+class Corr_net(nn.Module):
+    def __init__(self, hidden_size, activation=True):
+        super().__init__()
+
+        if activation:
+            self.decoder = nn.Sequential(
+                    nn.Conv1d(in_channels=hidden_size+3, out_channels=32, kernel_size=1),
+                    nn.BatchNorm1d(32),
+                    nn.ReLU(),
+                    nn.Conv1d(in_channels=32, out_channels=16, kernel_size=1),
+                    nn.BatchNorm1d(16),
+                    nn.ReLU(),
+                    nn.Conv1d(in_channels=16, out_channels=8, kernel_size=1),
+                    nn.BatchNorm1d(8),
+                    nn.ReLU(),
+                    nn.Conv1d(in_channels=8, out_channels=3, kernel_size=1),
+                    nn.Tanh(),
+                    )
+        else:
+            self.decoder = nn.Sequential(
+                    nn.Conv1d(in_channels=hidden_size+3, out_channels=32, kernel_size=1),
+                    nn.BatchNorm1d(32),
+                    nn.ReLU(),
+                    nn.Conv1d(in_channels=32, out_channels=16, kernel_size=1),
+                    nn.BatchNorm1d(16),
+                    nn.ReLU(),
+                    nn.Conv1d(in_channels=16, out_channels=8, kernel_size=1),
+                    nn.BatchNorm1d(8),
+                    nn.ReLU(),
+                    nn.Conv1d(in_channels=8, out_channels=3, kernel_size=1),
+                    )
+    
+
+    def forward(self, code : torch.Tensor):
+        
+        return self.decoder(code.transpose(1, 2)).transpose(2, 1)

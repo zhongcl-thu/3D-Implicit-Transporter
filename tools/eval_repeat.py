@@ -179,7 +179,6 @@ if __name__ == "__main__":
     test_type = args.test_type
     dataset_root = args.dataset_root
     
-    # kpts = np.load(args.test_root + '/kpts.npy', allow_pickle=True)
     kpts = np.load(args.test_root + '/kpts.npy', allow_pickle=True)
     rep_cat = {}
     dist_cat = {}
@@ -195,8 +194,6 @@ if __name__ == "__main__":
         num = 0
 
         for i in trange(100):
-            # if i < 97:
-            #     continue 
             kpts_i_1 = kpts.item()[('kp1', '{}'.format(cat), '{}'.format(i))]
             kpts_i_2 = kpts.item()[('kp2', '{}'.format(cat), '{}'.format(i))]
 
@@ -258,7 +255,6 @@ if __name__ == "__main__":
                 pred_transform = resolve_pose(kp_i_1_matched_masked, kp_i_2_matched_masked)
                 # print(pred_transform)
                 # print(transform_mat.astype(np.float32))
-            # ipdb.set_trace()
             
             movable_points1 = filter_seg(kpt=None, joint_id=selected_joint, pc=pc_start)
             if movable_points1.shape[0] == 0:
