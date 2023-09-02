@@ -132,7 +132,7 @@ python tools/eval_repeat.py \
 
 ## Pretrained Models
 
-We provide pretrained models on [Google Drive](). Move the models to *exp/[dataset_name]/train0901/checkpoints/*.
+We provide pretrained models on [Google Drive](https://drive.google.com/drive/folders/14BzKmgHpf-E7YtJCDZCkkTyA81hOwFC6?usp=sharing). Move the models to *exp/[dataset_name]/train0901/checkpoints/*.
 
 ## License
 
