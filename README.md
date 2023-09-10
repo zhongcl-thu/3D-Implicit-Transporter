@@ -28,7 +28,7 @@ If you find our code or paper useful, please consider citing:
 
 PartNet-Mobility dataset is provided by UMPNET, which can be downloaded from [here](https://ump-net.cs.columbia.edu/download/mobility_dataset.zip).
 
-We utilize the Pybullet simulator and object models from PartNet-Mobility dataset to generate training and test data, which will be released soon. Then, move the downloaded data into 'data' folder.
+We utilize the Pybullet simulator and object models from PartNet-Mobility dataset to generate training and test data, which can be downloaded from [here](https://drive.google.com/drive/folders/1DyXP4EQExfq7yimrXNmKO80tk_mILY8-?usp=sharing). Then, move the downloaded data into 'data' folder.
 
 Our 'data' folder structure is as follows:
 
@@ -143,7 +143,7 @@ sh eval.sh
 
 ## Pretrained Models
 
-We provide pretrained models on [Google Drive](https://drive.google.com/drive/folders/14BzKmgHpf-E7YtJCDZCkkTyA81hOwFC6?usp=sharing). Move the models to *exp/[dataset_name]/train0901/checkpoints/*.
+We provide pretrained models on [Google Drive](https://drive.google.com/drive/folders/14BzKmgHpf-E7YtJCDZCkkTyA81hOwFC6?usp=sharing). Move the models to *exp/train0901/checkpoints/*.
 
 ## License
 
