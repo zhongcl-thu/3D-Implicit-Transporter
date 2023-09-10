@@ -79,6 +79,13 @@ python setup.py build_ext --inplace
 The architecture of our model is as follows:
 <p align="center"><img src="media/pipeline.png" width="700" /></p>
 
+If a directory for storing training results does not exist, run:
+
+```
+mkdir exp/train0901
+```
+The name 'train0901' can be modified as per your discretion.
+
 If train on single GPU, run:
 
 ```
@@ -126,8 +133,12 @@ python tools/eval_repeat.py \
 ```
 
 ### 2. Manipulation
-
-**Note**: TODO.
+After training, one can get 'model_best.pth' in 'exp/train0901/checkpoints'. 
+```
+ln -s exp/train0901/checkpoints/model_best.pth manipulation/ckpts/
+cd manipulation
+sh eval.sh
+```
 
 
 ## Pretrained Models
