@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+<robot name="control_body" 
+
+       xmlns:xi="http://www.w3.org/2001/XInclude"
+       xmlns:gazebo="http://playerstage.sourceforge.net/gazebo/xmlschema/#gz"
+       xmlns:model="http://playerstage.sourceforge.net/gazebo/xmlschema/#model"
+       xmlns:sensor="http://playerstage.sourceforge.net/gazebo/xmlschema/#sensor"
+       xmlns:body="http://playerstage.sourceforge.net/gazebo/xmlschema/#body"
+       xmlns:geom="http://playerstage.sourceforge.net/gazebo/xmlschema/#geom"
+       xmlns:joint="http://playerstage.sourceforge.net/gazebo/xmlschema/#joint"
+       xmlns:interface="http://playerstage.sourceforge.net/gazebo/xmlschema/#interface"
+       xmlns:rendering="http://playerstage.sourceforge.net/gazebo/xmlschema/#rendering"
+       xmlns:renderable="http://playerstage.sourceforge.net/gazebo/xmlschema/#renderable"
+       xmlns:controller="http://playerstage.sourceforge.net/gazebo/xmlschema/#controller"
+       xmlns:physics="http://playerstage.sourceforge.net/gazebo/xmlschema/#physics">
+  
+    <link name="base_link">
+    <inertial>
+        <mass value="0"/>
+        <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+    </link>
+
+    <link name="link_x">
+    <inertial>
+        <mass value="0"/>
+        <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+    </link>
+
+    <link name="link_y">
+    <inertial>
+        <mass value="0"/>
+        <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+    </link>
+
+    <link name="link_z">
+    <inertial>
+        <mass value="0"/>
+        <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+    </link>
+
+    <link name="control_link">
+        <visual>
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <geometry>
+                <sphere radius="0.05"/>
+            </geometry>
+            <!-- <material name="red">
+                <color rgba="1 0 0 1"/>
+            </material> -->
+            <material name="blue">
+                <color rgba="0 0 1 1"/>
+            </material>
+        </visual>
+        <inertial>
+            <mass value="2"/>
+            <inertia  ixx="1.0" ixy="1.0"  ixz="1.0"  iyy="1.0"  iyz="1.0"  izz="1.0" />
+        </inertial>
+    </link>
+  
+    <joint name="joint_x" type="prismatic">
+        <parent link="base_link"/>
+        <child link="link_x"/>
+        <origin xyz= "0 0 0.0"/>
+        <axis xyz="1 0 0"/>
+        <limit effort="1000.0" lower="-1000" upper="1000" velocity="5"/>
+    </joint>
+
+    <joint name="joint_y" type="prismatic">
+        <parent link="link_x"/>
+        <child link="link_y"/>
+        <origin xyz= "0 0 0.0"/>
+        <axis xyz="0 1 0"/>
+        <limit effort="1000.0" lower="-1000" upper="1000" velocity="5"/>
+    </joint>
+
+    <joint name="joint_z" type="prismatic">
+        <parent link="link_y"/>
+        <child link="link_z"/>
+        <origin xyz= "0 0 0.0"/>
+        <axis xyz="0 0 1"/>
+        <limit effort="1000.0" lower="-1000" upper="1000" velocity="5"/>
+    </joint>
+
+
+    <joint name="joint_control" type="fixed">
+        <parent link="link_z"/>
+        <child link="control_link"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+    </joint>
+
+</robot>

@@ -1,0 +1,128 @@
+common:
+    method: ours 
+
+    net:
+        type: Transporter
+        kwargs:
+            input_type: pointcloud
+            sigmoid: True
+
+            encoder: pointnet_local_pool
+            encoder_kwargs:
+                c_dim: 32
+                hidden_dim: 32
+                plane_type: 'grid'
+                grid_resolution: [64, 64, 64]
+                unet3d: True
+                unet3d_kwargs:
+                    num_levels: 4
+                    f_maps: 32
+                    in_channels: 32
+                    out_channels: 32
+            
+            keypointnet:
+                encoder: pointnet_atten_cross
+                encoder_kwargs:
+                    attn_kwargs:
+                        type: simple
+                    c_dim: 32
+                    hidden_dim: 32
+                    plane_type: 'grid'
+                    grid_resolution: [64, 64, 64]
+                    unet3d: True
+                    unet3d_kwargs:
+                        num_levels: 4
+                        f_maps: 32
+                        in_channels: 32
+                        out_channels: 6
+                decoder_kwargs:
+                    std: 0.15
+            
+            decoder:
+                decoder_occup: 
+                    decoder_type: simple_local
+                    decoder_kwargs:
+                        sample_mode: bilinear # bilinear / nearest
+                        hidden_size: 32
+
+    solver:
+        type: Solver
+    
+    loss:
+        loss1:
+            type: Occupancy_loss
+            kwargs:
+                weight: 1.0
+        
+        loss2:
+            type: Occupancy_loss_2
+            kwargs:
+                weight: 1.0
+        
+        loss3:
+            type: Pose_loss
+            kwargs:
+                weight: 0.01
+                axis_weight: 0.1
+                corr_weight: 1.0
+        
+        # loss4:
+        #     type: Kp_consist_loss
+        #     kwargs:
+        #         weight: 1.0
+    
+
+    public_params:
+        input_pcd_num: 5000
+        on_occupancy_num: 2000 # 1000
+        off_occupancy_num: 2000 # 1000
+        padding: 0
+        grid_reso: 8
+        x_res_grid: [-0.5, 0.5, 8]
+        y_res_grid: [-0.5, 0.5, 8]
+        z_res_grid: [-0.5, 0.5, 8]
+        z_min: -0.5
+        z_max: 0.5
+    
+    optim:
+        type: Adam
+        kwargs:
+            weight_decay: 0.0005
+            #momentum: 0.9
+            #nesterov: True
+    
+    lr_scheduler:
+        type: Step
+        kwargs:
+            lr_step_size: [30]
+            lr_mults: 0.1
+            base_lr: 0.0001
+
+    workers: 10
+    batch_size: 10
+
+    max_epoch: 40
+    print_freq: 50
+    val_freq: 250
+    save_interval: 1000
+    save_epoch_interval: 30
+    deterministic: True
+    random_seed: 111
+    
+augmentation:
+    do_aug: True
+    rotate_angle: 360
+    rotate_dim: 2D
+    sigma: 0.005
+    clip: 0.01
+    dif_length: 20
+
+data_info:
+    dataset_name: partnet
+    data_path: data/bullet_multi_joint_train
+    train_file: core/datasets/splits/train_bullet.txt
+    val_file: core/datasets/splits/val_bullet.txt
+    gt_pose: False
+
+evaluate:
+    
