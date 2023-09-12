@@ -8,11 +8,7 @@ This repository contains the implementation of the following [paper]():
 
 **In ICCV 2023 (Oral)**
 
-<p align="center"><img src="media/teaser.png" width="500" \></p>
-<div style="white-space: nowrap;">
-  <img src="media/teaser.png" style="display: inline-block; width="250";">
-  <img src="media/realworld.png" style="display: inline-block; width="250";">
-</div>
+<p align="center"><img src="media/teaser.png" width="500" \><img src="media/realworld.png" width="500" \></p>
 
 
 If you find our code or paper useful, please consider citing:
