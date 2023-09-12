@@ -8,7 +8,7 @@ This repository contains the implementation of the following [paper]():
 
 **In ICCV 2023 (Oral)**
 
-<p align="center"><img src="media/teaser.png" width="500" /></p>
+<p align="center"><img src="media/teaser.png" width="400" style="margin-left: 400" \><img src="media/realworld.png" width="400" \></p>
 
 
 If you find our code or paper useful, please consider citing:
@@ -138,7 +138,7 @@ After training, one can get 'model_best.pth' in 'exp/train0901/checkpoints'.
 ln -s exp/train0901/checkpoints/model_best.pth manipulation/ckpts/
 cd manipulation
 sh eval.sh
-```
+``` 
 
 
 ## Pretrained Models
