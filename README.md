@@ -1,14 +1,14 @@
-# 3D Implicit Transporter for Temporal Keypoint Discovery
+# 3D Implicit Transporter for Temporally Consistent Keypoint Discovery
 
 This repository contains the implementation of the following [paper]():
 
-3D Implicit Transporter for Temporal Keypoint Discovery
+3D Implicit Transporter for Temporally Consistent Keypoint Discovery
 
 [Chengliang Zhong](https://zhongcl-thu.github.io/), Yuhang Zheng, [Yupeng Zheng](https://scholar.google.com/citations?user=anGhGdYAAAAJ&hl=zh-CN), [Hao Zhao](https://sites.google.com/view/fromandto), [Li Yi](https://scholar.google.com/citations?user=UyZL660AAAAJ&hl=zh-CN), Xiaodong Mu, Ling Wang, [Pengfei Li](https://scholar.google.com/citations?user=hmii_L8AAAAJ&hl=zh-CN), [Guyue Zhou](https://air.tsinghua.edu.cn/en/info/1046/1196.htm), [Chao Yang](https://scholar.google.com/citations?user=5KRbHPMAAAAJ&hl=zh-CN), Xinliang Zhang, [Jian Zhao](https://zhaoj9014.github.io/)
 
 **In ICCV 2023 (Oral)**
 
-<p align="center"><img src="media/teaser.png" width="500" /></p>
+<p align="center"><img src="media/show.png" width="900" /></p>
 
 
 If you find our code or paper useful, please consider citing:
@@ -16,12 +16,26 @@ If you find our code or paper useful, please consider citing:
 ```bibtex
 @misc{xxxxx,
   author={Chengliang Zhong, Yuhang Zheng, Yupeng Zheng, Hao Zhao, Li Yi, Xiaodong Mu, Ling Wang, Pengfei Li, Guyue Zhou, Chao Yang, Xinliang Zhang, Jian Zhao},
-  title={3D Implicit Transporter for Temporal Keypoint Discover},
+  title={3D Implicit Transporter for Temporally Consistent Keypoint Discovery},
   year={2023}, 
   booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
   pages={xxx}
 }
 ```
+
+## Overall
+
+The architecture of our model is as follows:
+<p align="center"><img src="media/pipeline.png" width="700" /></p>
+
+Discover keypoints for rigid cases (simulator and real-world):
+<p align="center"><img src="media/key_point_sim.mp4" width="500" \><img src="media/real_world_1.mp4" width="500" \></p>
+
+Discover keypoints for non-rigid cases (rodents and human):
+<p align="center"><img src="media/rodent3d.mp4" width="500" \><img src="media/human.mp4" width="500" \></p>
+
+Using temporally consistent keypoints for closed-loop manipulation:
+<p align="center"><img src="media/robot_arm_1.mp4" width="700" /></p>
 
 
 ## Datasets
@@ -75,9 +89,6 @@ python setup.py build_ext --inplace
 ```
 
 ## Training
-
-The architecture of our model is as follows:
-<p align="center"><img src="media/pipeline.png" width="700" /></p>
 
 If a directory for storing training results does not exist, run:
 
