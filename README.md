@@ -8,7 +8,7 @@ This repository contains the implementation of the following [paper]():
 
 **In ICCV 2023 (Oral)**
 
-<p align="center"><img src="media/teaser.png" width="480" style="margin-right: 400" \><img src="media/realworld.png" width="480" \></p>
+<p align="center"><img src="media/teaser.png" width="400" style="margin-right: 400" \><img src="media/realworld.png" width="400" \></p>
 
 
 If you find our code or paper useful, please consider citing:
