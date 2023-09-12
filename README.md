@@ -29,13 +29,13 @@ The architecture of our model is as follows:
 <p align="center"><img src="media/pipeline.png" width="700" /></p>
 
 Discover keypoints for rigid cases (simulator and real-world):
-<p align="center"><img src="media/key_point_sim.mp4" width="500" \><img src="media/real_world_1.mp4" width="500" \></p>
+<p align="center"><img src="media/key_point_sim.gif" width="500" \><img src="media/real_world_1.gif" width="500" \></p>
 
 Discover keypoints for non-rigid cases (rodents and human):
-<p align="center"><img src="media/rodent3d.mp4" width="500" \><img src="media/human.mp4" width="500" \></p>
+<p align="center"><img src="media/rodent3d.gif" width="500" \><img src="media/human.gif" width="500" \></p>
 
 Using temporally consistent keypoints for closed-loop manipulation:
-<p align="center"><img src="media/robot_arm_1.mp4" width="700" /></p>
+<p align="center"><img src="media/robot_arm_1.gif" width="700" /></p>
 
 
 ## Datasets
