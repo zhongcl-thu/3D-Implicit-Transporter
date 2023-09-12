@@ -10,8 +10,8 @@ This repository contains the implementation of the following [paper]():
 
 <p align="center"><img src="media/teaser.png" width="500" \></p>
 <div style="white-space: nowrap;">
-  <img src="media/teaser.png" style="display: inline-block; width="500";">
-  <img src="media/realworld.png" style="display: inline-block; width="500";">
+  <img src="media/teaser.png" style="display: inline-block; width="250";">
+  <img src="media/realworld.png" style="display: inline-block; width="250";">
 </div>
 
 
