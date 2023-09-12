@@ -138,7 +138,7 @@ After training, one can get 'model_best.pth' in 'exp/train0901/checkpoints'.
 ln -s exp/train0901/checkpoints/model_best.pth manipulation/ckpts/
 cd manipulation
 sh eval.sh
-```
+``` 
 
 
 ## Pretrained Models

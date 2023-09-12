@@ -218,7 +218,7 @@ def run_test(args, model, category_name, instance_type):
     max_step_num = step_num_dict[category_name]
 
     # test data info
-    test_data_path = os.path.join('test_data', args.mode, category_name, instance_type)
+    test_data_path = os.path.join(args.test_data, args.mode, category_name, instance_type)
     test_num = 100
 
     results = dict()
