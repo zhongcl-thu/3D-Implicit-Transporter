@@ -1,6 +1,6 @@
 # 3D Implicit Transporter for Temporally Consistent Keypoint Discovery
 
-This repository contains the implementation of the following [paper]():
+This repository contains the implementation of the following [paper](https://openaccess.thecvf.com/content/ICCV2023/papers/Zhong_3D_Implicit_Transporter_for_Temporally_Consistent_Keypoint_Discovery_ICCV_2023_paper.pdf):
 
 3D Implicit Transporter for Temporally Consistent Keypoint Discovery
 
@@ -14,12 +14,12 @@ This repository contains the implementation of the following [paper]():
 If you find our code or paper useful, please consider citing:
 
 ```bibtex
-@misc{xxxxx,
-  author={Chengliang Zhong, Yuhang Zheng, Yupeng Zheng, Hao Zhao, Li Yi, Xiaodong Mu, Ling Wang, Pengfei Li, Guyue Zhou, Chao Yang, Xinliang Zhang, Jian Zhao},
+@inproceedings{zhong20233d,
   title={3D Implicit Transporter for Temporally Consistent Keypoint Discovery},
-  year={2023}, 
+  author={Zhong, Chengliang and Zheng, Yuhang and Zheng, Yupeng and Zhao, Hao and Yi, Li and Mu, Xiaodong and Wang, Ling and Li, Pengfei and Zhou, Guyue and Yang, Chao and others},
   booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
-  pages={xxx}
+  pages={3869--3880},
+  year={2023}
 }
 ```
 
